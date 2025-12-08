@@ -18,9 +18,15 @@
     <!-- Top Bar -->
     <nav class="navbar navbar-dark bg-dark fixed-top">
         <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">
-                <i class="fas fa-satellite-dish"></i> UAV × UGV Control Center
-            </span>
+            <div class="d-flex align-items-center">
+                <!-- Toggle Button -->
+                <button class="sidebar-toggle me-2" id="sidebarToggle" title="摺疊/展開側邊欄">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <span class="navbar-brand mb-0 h1">
+                    <i class="fas fa-satellite-dish"></i> UAV × UGV Control Center
+                </span>
+            </div>
             <div class="navbar-nav flex-row">
                 <div class="nav-item me-3">
                     <span class="text-light" id="currentTime">20:12:03</span>
@@ -39,26 +45,31 @@
     </nav>
 
     <!-- Side Navigation -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
+        
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a class="nav-link active" href="{{ url_for('index') }}">
-                    <i class="fas fa-home"></i> 總覽
+                    <i class="fas fa-home"></i>
+                    <span class="nav-text">總覽</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('map_page') }}">
-                    <i class="fas fa-map"></i> 地圖與任務
+                    <i class="fas fa-map"></i>
+                    <span class="nav-text">地圖與任務</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('performance_page') }}">
-                    <i class="fas fa-chart-line"></i> 性能與記錄
+                    <i class="fas fa-chart-line"></i>
+                    <span class="nav-text">性能與記錄</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('system_page') }}">
-                    <i class="fas fa-cog"></i> 系統與電源
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-text">系統與電源</span>
                 </a>
             </li>
         </ul>
@@ -67,43 +78,18 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="container-fluid">
-            <h2 class="page-title mb-4">總覽</h2>
-            
-            <!-- System Status Cards -->
-            <div class="row mb-4" id="systemStatusCards">
-                <!-- 載具狀態卡片將由 JavaScript 動態生成 -->
-            </div>
-
             <!-- Main Dashboard Grid -->
-            <!-- 布局說明：系統狀態卡片為 col-lg-4 (4欄=1單位)，所以1單位=4欄，3單位=12欄 -->
-            <div class="row">
-                <!-- Left Column - 1單位 (電池狀態 + 位置資訊) -->
-                <div class="col-lg-4">
-                    <!-- Battery Status -->
-                    <div class="card mb-3" id="batteryStatusCard">
-                        <div class="card-header">
-                            <h6 class="mb-0"><i class="fas fa-battery-half"></i> 電池狀態</h6>
-                        </div>
-                        <div class="card-body" id="batteryStatusContent">
-                            <!-- 電池狀態將由 JavaScript 動態生成 -->
-                        </div>
-                    </div>
-
-                    <!-- Position Info -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0"><i class="fas fa-map-marker-alt"></i> 位置資訊</h6>
-                        </div>
-                        <div class="card-body" id="positionInfoContent">
-                            <!-- 位置資訊將由 JavaScript 動態生成 -->
-                        </div>
+            <div class="row dashboard-grid">
+                <!-- Left Column - 載具狀態卡片 (上下排列，包含位置資訊) -->
+                <div class="col-lg-4 dashboard-col-vehicles">
+                    <div id="systemStatusCards">
+                        <!-- 載具狀態卡片將由 JavaScript 動態生成 (UAV1 和 UGV1 上下排列，包含位置、電池資訊) -->
                     </div>
                 </div>
 
-                <!-- Attitude Indicator Column - 1單位 -->
-                <div class="col-lg-4">
-                    <!-- Attitude Indicator -->
-                    <div class="card mb-3">
+                <!-- Center Column - 姿態指示器 + 任務狀態 -->
+                <div class="col-lg-4 dashboard-col-center">
+                    <div class="card mb-3 attitude-card">
                         <div class="card-header">
                             <h6 class="mb-0"><i class="fas fa-compass"></i> 姿態指示器</h6>
                             <select class="form-select form-select-sm mt-2" id="attitudeVehicleSelect">
@@ -113,7 +99,7 @@
                         </div>
                         <div class="card-body text-center">
                             <div class="attitude-container">
-                                <canvas id="attitudeCanvas" width="250" height="250"></canvas>
+                                <canvas id="attitudeCanvas"></canvas>
                                 <div class="attitude-values mt-3">
                                     <div class="row">
                                         <div class="col-4">
@@ -133,39 +119,122 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Mission Status Card -->
+                    <div class="card mb-3 mission-status-card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-tasks"></i> 任務狀態</h6>
+                        </div>
+                        <div class="card-body" id="missionStatusContent">
+                            <div class="mission-item">
+                                <div class="mission-vehicle">
+                                    <i class="fas fa-plane text-primary"></i> UAV:
+                                </div>
+                                <div class="mission-status" id="missionStatusUAV">
+                                    <span class="badge bg-warning">Return to Home</span>
+                                </div>
+                            </div>
+                            <div class="mission-item">
+                                <div class="mission-vehicle">
+                                    <i class="fas fa-car text-success"></i> UGV:
+                                </div>
+                                <div class="mission-status" id="missionStatusUGV">
+                                    <span class="badge bg-secondary">待命中</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UGV LIDAR 顯示 -->
+                    <div class="card lidar-card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-radar"></i> UGV LIDAR 顯示</h6>
+                            <span class="badge" id="lidarConnectionStatus">未連接</span>
+                        </div>
+                        <div class="card-body text-center p-0">
+                            <div class="lidar-container">
+                                <canvas id="lidarCanvas"></canvas>
+                                <div class="lidar-overlay">
+                                    <div class="lidar-center-marker"></div>
+                                </div>
+                            </div>
+                            <div class="lidar-stats mt-2 px-2 pb-2">
+                                <div class="row small text-muted">
+                                    <div class="col-4">
+                                        <i class="fas fa-circle"></i> 點數: <span id="lidarPointCount">0</span>
+                                    </div>
+                                    <div class="col-4">
+                                        <i class="fas fa-compress-arrows-alt"></i> 最短: <span id="lidarMinRange">- m</span>
+                                    </div>
+                                    <div class="col-4">
+                                        <i class="fas fa-arrows-alt"></i> 最遠: <span id="lidarMaxRange">0 m</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Right Column - 1單位 (鏡頭 + 訊息中心) -->
-                <div class="col-lg-4">
-                    <!-- Camera View -->
-                    <div class="card mb-3">
+                <!-- Right Column - 鏡頭 + 訊息中心 -->
+                <div class="col-lg-4 dashboard-col-right">
+                    <!-- UAV Camera View -->
+                    <div class="card mb-3 camera-card">
                         <div class="card-header">
-                            <h6 class="mb-0"><i class="fas fa-camera"></i> 鏡頭</h6>
-                            <select class="form-select form-select-sm mt-2" id="cameraVehicleSelect">
-                                <option value="UAV1">UAV1</option>
-                                <option value="UGV1">UGV1</option>
-                            </select>
+                            <h6 class="mb-0"><i class="fas fa-camera"></i> UAV 鏡頭</h6>
                         </div>
                         <div class="card-body">
                             <div class="camera-view">
-                                <img id="cameraImage" src="{{ url_for('static', filename='images/placeholder.jpg') }}" 
-                                     alt="Camera View" class="img-fluid">
+                                <img id="cameraStreamUAV" src="" alt="UAV Camera Stream" class="camera-stream" style="display: none;">
+                                <img id="cameraImageUAV" src="{{ url_for('static', filename='images/placeholder.jpg') }}" 
+                                     alt="UAV Camera View" style="display: block;">
                                 <div class="camera-overlay">
                                     <div class="overlay-item">
                                         <span class="overlay-label">Mode:</span>
-                                        <span id="cameraMode">--</span>
+                                        <span id="cameraModeUAV">--</span>
                                     </div>
                                     <div class="overlay-item">
                                         <span class="overlay-label">Battery:</span>
-                                        <span id="cameraBattery">--%</span>
+                                        <span id="cameraBatteryUAV">--%</span>
                                     </div>
                                     <div class="overlay-item">
                                         <span class="overlay-label">Alt/Speed:</span>
-                                        <span id="cameraAltSpeed">-- m / -- m/s</span>
+                                        <span id="cameraAltSpeedUAV">-- m / -- m/s</span>
                                     </div>
                                     <div class="overlay-item">
                                         <span class="overlay-label">Time:</span>
-                                        <span id="cameraTime">--:--:--</span>
+                                        <span id="cameraTimeUAV">--:--:--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UGV Camera View -->
+                    <div class="card mb-3 camera-card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-camera"></i> UGV 鏡頭</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="camera-view">
+                                <img id="cameraStreamUGV" src="" alt="UGV Camera Stream" class="camera-stream" style="display: none;">
+                                <img id="cameraImageUGV" src="{{ url_for('static', filename='images/placeholder.jpg') }}" 
+                                     alt="UGV Camera View" style="display: block;">
+                                <div class="camera-overlay">
+                                    <div class="overlay-item">
+                                        <span class="overlay-label">Mode:</span>
+                                        <span id="cameraModeUGV">--</span>
+                                    </div>
+                                    <div class="overlay-item">
+                                        <span class="overlay-label">Battery:</span>
+                                        <span id="cameraBatteryUGV">--%</span>
+                                    </div>
+                                    <div class="overlay-item">
+                                        <span class="overlay-label">Alt/Speed:</span>
+                                        <span id="cameraAltSpeedUGV">-- m / -- m/s</span>
+                                    </div>
+                                    <div class="overlay-item">
+                                        <span class="overlay-label">Time:</span>
+                                        <span id="cameraTimeUGV">--:--:--</span>
                                     </div>
                                 </div>
                             </div>
@@ -213,9 +282,11 @@
                                 <div>
                                     <label class="form-label me-2" style="font-size: 0.85rem;">更新頻率:</label>
                                     <select class="form-select form-select-sm" id="chartUpdateRate" style="width: auto; display: inline-block;">
-                                        <option value="5">5 Hz</option>
-                                        <option value="10" selected>10 Hz</option>
+                                        <option value="10">10 Hz</option>
                                         <option value="20">20 Hz</option>
+                                        <option value="25" selected>25 Hz</option>
+                                        <option value="30">30 Hz</option>
+                                        <option value="50">50 Hz</option>
                                     </select>
                                 </div>
                             </div>
@@ -261,6 +332,7 @@
 
     <!-- JavaScript Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/attitude_indicator.js') }}"></script>
     <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/overview.js') }}"></script>

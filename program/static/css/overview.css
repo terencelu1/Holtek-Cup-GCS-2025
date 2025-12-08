@@ -8,6 +8,7 @@
     --info-color: #17a2b8;
     --dark-bg: #343a40;
     --sidebar-width: 250px;
+    --sidebar-collapsed-width: 60px;
 }
 
 * {
@@ -29,6 +30,26 @@ body {
     z-index: 1030;
 }
 
+/* Sidebar Toggle Button in Navbar */
+.sidebar-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #adb5bd;
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
 /* Sidebar */
 .sidebar {
     position: fixed;
@@ -40,6 +61,12 @@ body {
     padding: 20px 0;
     z-index: 1020;
     overflow-y: auto;
+    overflow-x: hidden;
+    transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
 }
 
 .sidebar .nav-link {
@@ -47,6 +74,31 @@ body {
     padding: 12px 20px;
     border-left: 3px solid transparent;
     transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.sidebar .nav-link i {
+    min-width: 20px;
+    font-size: 18px;
+}
+
+.sidebar .nav-link .nav-text {
+    margin-left: 12px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar.collapsed .nav-link .nav-text {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 12px 10px;
 }
 
 .sidebar .nav-link:hover {
@@ -59,6 +111,397 @@ body {
     color: #fff;
     background-color: rgba(255, 255, 255, 0.15);
     border-left-color: var(--primary-color);
+}
+
+/* Body padding adjustment for collapsed sidebar */
+body.sidebar-collapsed {
+    padding-left: var(--sidebar-collapsed-width);
+}
+
+/* Compact layout when sidebar is collapsed */
+body.sidebar-collapsed .main-content {
+    padding: 10px 15px;
+}
+
+body.sidebar-collapsed .page-title {
+    font-size: 1.3rem;
+    margin-bottom: 0.75rem !important;
+}
+
+/* Dashboard grid - 3 columns when collapsed: vehicles(33%), center(33%), right(33%) */
+body.sidebar-collapsed .dashboard-col-vehicles {
+    flex: 0 0 auto;
+    width: 33.333%;
+    max-width: 33.333%;
+}
+
+body.sidebar-collapsed .dashboard-col-center {
+    flex: 0 0 auto;
+    width: 33.333%;
+    max-width: 33.333%;
+}
+
+body.sidebar-collapsed .dashboard-col-right {
+    flex: 0 0 auto;
+    width: 33.333%;
+    max-width: 33.333%;
+}
+
+/* System status cards stacked vertically in first column */
+body.sidebar-collapsed #systemStatusCards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+body.sidebar-collapsed #systemStatusCards .system-status-card {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+/* Enhanced status card sections - more compact */
+body.sidebar-collapsed .status-section {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 0.3rem;
+    margin-bottom: 0.3rem;
+}
+
+body.sidebar-collapsed .status-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0.3rem;
+    margin-bottom: 0;
+}
+
+body.sidebar-collapsed .section-title {
+    font-size: 0.7rem;
+    color: #495057;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+}
+
+body.sidebar-collapsed .section-title i {
+    margin-right: 0.2rem;
+    font-size: 0.65rem;
+}
+
+body.sidebar-collapsed .battery-info {
+    padding: 0;
+}
+
+body.sidebar-collapsed .battery-voltage {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+body.sidebar-collapsed .battery-percent {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+body.sidebar-collapsed .battery-info .progress {
+    height: 12px;
+    margin-bottom: 0;
+}
+
+body.sidebar-collapsed .battery-info small {
+    font-size: 0.6rem;
+}
+
+body.sidebar-collapsed .battery-info .d-flex {
+    margin-bottom: 0.25rem;
+}
+
+body.sidebar-collapsed .position-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+}
+
+body.sidebar-collapsed .card {
+    margin-bottom: 0.5rem !important;
+}
+
+body.sidebar-collapsed .card-header {
+    padding: 0.4rem 0.6rem;
+}
+
+body.sidebar-collapsed .card-header h6 {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+}
+
+body.sidebar-collapsed .card-body {
+    padding: 0.6rem;
+}
+
+body.sidebar-collapsed .system-status-card {
+    margin-bottom: 0.5rem;
+}
+
+body.sidebar-collapsed .system-status-card .card-header {
+    padding: 0.3rem 0.5rem;
+}
+
+body.sidebar-collapsed .system-status-card .card-body {
+    padding: 0.4rem 0.5rem;
+}
+
+body.sidebar-collapsed .vehicle-header {
+    margin-bottom: 0;
+}
+
+body.sidebar-collapsed .vehicle-name {
+    font-size: 0.9rem;
+}
+
+body.sidebar-collapsed .vehicle-type-badge {
+    font-size: 0.65rem;
+    padding: 2px 5px;
+}
+
+body.sidebar-collapsed .status-grid {
+    gap: 4px;
+    margin-bottom: 0;
+}
+
+body.sidebar-collapsed .status-item label {
+    font-size: 0.65rem;
+    margin-bottom: 0;
+}
+
+body.sidebar-collapsed .status-item .value {
+    font-size: 0.75rem;
+}
+
+body.sidebar-collapsed .status-item .btn-sm {
+    padding: 0.1rem 0.3rem;
+    font-size: 0.65rem;
+}
+
+body.sidebar-collapsed .battery-item {
+    margin-bottom: 6px;
+}
+
+body.sidebar-collapsed .battery-item label {
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+}
+
+body.sidebar-collapsed .battery-value {
+    font-size: 0.9rem;
+}
+
+body.sidebar-collapsed .progress {
+    height: 15px;
+}
+
+/* Position info compact */
+body.sidebar-collapsed .position-item {
+    margin-bottom: 0;
+}
+
+body.sidebar-collapsed .position-item label {
+    font-size: 0.65rem;
+    margin-bottom: 1px;
+}
+
+body.sidebar-collapsed .position-item .value {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Attitude indicator - larger when collapsed */
+body.sidebar-collapsed .attitude-card {
+    height: fit-content;
+}
+
+body.sidebar-collapsed .attitude-container canvas {
+    width: 280px !important;
+    height: 280px !important;
+}
+
+body.sidebar-collapsed .attitude-values {
+    margin-top: 0.75rem !important;
+}
+
+body.sidebar-collapsed .attitude-number {
+    font-size: 1rem;
+}
+
+body.sidebar-collapsed .attitude-values .col-4 small {
+    font-size: 0.8rem;
+}
+
+/* Mission Status Card */
+body.sidebar-collapsed .mission-status-card {
+    margin-bottom: 0.5rem;
+}
+
+body.sidebar-collapsed .mission-status-card .card-header {
+    padding: 0.4rem 0.6rem;
+}
+
+body.sidebar-collapsed .mission-status-card .card-body {
+    padding: 0.5rem 0.6rem;
+}
+
+body.sidebar-collapsed .mission-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.3rem;
+    margin-bottom: 0.3rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+body.sidebar-collapsed .mission-item:last-child {
+    margin-bottom: 0;
+}
+
+body.sidebar-collapsed .mission-vehicle {
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+body.sidebar-collapsed .mission-vehicle i {
+    font-size: 0.9rem;
+}
+
+body.sidebar-collapsed .mission-status {
+    display: flex;
+    align-items: center;
+}
+
+body.sidebar-collapsed .mission-status .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    font-weight: 600;
+}
+
+/* Camera view - maintain original aspect ratio when collapsed */
+body.sidebar-collapsed .camera-card {
+    height: fit-content;
+}
+
+body.sidebar-collapsed .camera-view {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+}
+
+body.sidebar-collapsed .camera-view img,
+body.sidebar-collapsed .camera-view video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    /* 向右偏移以裁剪左邊黑邊 */
+    object-position: 55% center;
+    /* 放大以填滿容器 */
+    transform: scale(1.1);
+}
+
+body.sidebar-collapsed .camera-view .camera-stream {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    /* 向右偏移以裁剪左邊黑邊 */
+    object-position: 55% center !important;
+    /* 放大以填滿容器 */
+    transform: scale(1.1) translateZ(0);
+}
+
+body.sidebar-collapsed .camera-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.4rem;
+}
+
+body.sidebar-collapsed .camera-overlay .overlay-item {
+    margin-bottom: 3px;
+}
+
+body.sidebar-collapsed .message-center {
+    max-height: 250px;
+    min-height: 250px;
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    overflow-y: auto;
+}
+
+body.sidebar-collapsed .message-item {
+    padding: 0.35rem;
+    margin-bottom: 0.3rem;
+    border-radius: 3px;
+    background-color: #f8f9fa;
+}
+
+body.sidebar-collapsed .message-time {
+    font-size: 0.65rem;
+}
+
+body.sidebar-collapsed .message-text {
+    line-height: 1.3;
+    margin-top: 0.15rem;
+}
+
+/* Make position info card taller to match layout */
+body.sidebar-collapsed #positionInfoContent {
+    min-height: 300px;
+}
+
+body.sidebar-collapsed .form-select-sm {
+    font-size: 0.75rem;
+    padding: 0.15rem 1.5rem 0.15rem 0.35rem;
+    margin-top: 0.3rem !important;
+    background-position: right 0.35rem center;
+    background-size: 12px 10px;
+}
+
+body.sidebar-collapsed .btn-sm {
+    padding: 0.15rem 0.35rem;
+    font-size: 0.75rem;
+}
+
+body.sidebar-collapsed .data-update-info {
+    font-size: 0.6rem;
+    margin-top: 0.25rem;
+    padding-top: 0;
+    border-top: none;
+}
+
+/* Compact buttons and controls */
+body.sidebar-collapsed .btn-group-sm > .btn,
+body.sidebar-collapsed .btn-sm {
+    padding: 0.15rem 0.35rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+/* Make sure all text is compact */
+body.sidebar-collapsed small {
+    font-size: 0.7rem;
+}
+
+/* Reduce spacing in rows */
+body.sidebar-collapsed .row {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+}
+
+body.sidebar-collapsed .row > * {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
 }
 
 /* Main Content */
@@ -183,6 +626,16 @@ body {
     width: 100%;
 }
 
+.attitude-container {
+    position: relative;
+    display: inline-block;
+}
+
+.attitude-container canvas {
+    width: 250px;
+    height: 250px;
+}
+
 .attitude-number {
     font-size: 1.1rem;
     font-weight: 600;
@@ -211,12 +664,48 @@ body {
     background-color: #000;
     border-radius: 4px;
     overflow: hidden;
+    /* 保持 16:9 比例防止跳動，但稍微縮小以適應兩個鏡頭 */
+    aspect-ratio: 16 / 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.camera-view img {
+/* 兩個鏡頭卡片時，稍微調整高度 */
+.camera-card {
+    margin-bottom: 0.75rem;
+}
+
+.camera-card .card-body {
+    padding: 0.75rem;
+}
+
+.camera-view img,
+.camera-view video {
     width: 100%;
-    height: auto;
+    height: 100%;
     display: block;
+    object-fit: cover;
+    /* 向右偏移以裁剪左邊黑邊 */
+    object-position: 55% center;
+    /* 放大以填滿容器 */
+    transform: scale(1.1);
+}
+
+/* MJPEG 串流專用樣式 - 防止跳動，填滿容器裁剪黑邊 */
+.camera-view .camera-stream {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+    /* 向右偏移以裁剪左邊黑邊 */
+    object-position: 55% center !important;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    /* 放大以填滿容器 */
+    transform: scale(1.1) translateZ(0);
+    margin: 0;
+    padding: 0;
 }
 
 .camera-overlay {
@@ -384,5 +873,73 @@ body {
 
 .fade-in {
     animation: fadeIn 0.3s ease-in;
+}
+
+/* ==================== LIDAR 顯示樣式 ==================== */
+.lidar-card {
+    height: auto;
+}
+
+.lidar-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lidar-card .card-header .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.lidar-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    background-color: #e8e8e8;
+    border: 1px solid #495057;
+    overflow: hidden;
+}
+
+#lidarCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.lidar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.lidar-center-marker {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background-color: #ffc107;
+    border: 1px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+}
+
+.lidar-stats {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+.lidar-stats .row {
+    margin: 0;
+}
+
+.lidar-stats .col-4 {
+    padding: 0.25rem;
+    text-align: center;
+    font-size: 0.75rem;
 }
 

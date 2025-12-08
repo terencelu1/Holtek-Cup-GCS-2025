@@ -9,6 +9,7 @@ import logging
 import threading
 import math
 import random
+import requests
 from pathlib import Path
 from flask import Flask, render_template, jsonify, request
 
@@ -37,10 +38,29 @@ app = Flask(
 )
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'uav-ugv-control-center-2025')
 
-# 全局 MAVLink 對象
+# 全局 MAVLink 對象（保留但不再使用，改為從樹莓派獲取數據）
 mavlink_connection = None
 mavlink_telemetry = None
 rover_controller = None
+
+# 樹莓派 API 配置
+# UAV 樹莓派
+RASPBERRY_PI_UAV_IP = '172.20.10.5'
+RASPBERRY_PI_UAV_PORT = 8000
+RASPBERRY_PI_UAV_IMU_URL = f'http://{RASPBERRY_PI_UAV_IP}:{RASPBERRY_PI_UAV_PORT}/imu_data'
+RASPBERRY_PI_UAV_STATUS_URL = f'http://{RASPBERRY_PI_UAV_IP}:{RASPBERRY_PI_UAV_PORT}/'
+RASPBERRY_PI_UAV_VIDEO_URL = f'http://{RASPBERRY_PI_UAV_IP}:{RASPBERRY_PI_UAV_PORT}/video_feed'
+
+# UGV 樹莓派
+RASPBERRY_PI_UGV_IP = '172.20.10.10'
+RASPBERRY_PI_UGV_PORT = 8000
+RASPBERRY_PI_UGV_VIDEO_URL = f'http://{RASPBERRY_PI_UGV_IP}:{RASPBERRY_PI_UGV_PORT}/video_feed'
+
+# 保留舊的變數名稱以向後兼容
+RASPBERRY_PI_IP = RASPBERRY_PI_UAV_IP
+RASPBERRY_PI_PORT = RASPBERRY_PI_UAV_PORT
+RASPBERRY_PI_IMU_URL = RASPBERRY_PI_UAV_IMU_URL
+RASPBERRY_PI_STATUS_URL = RASPBERRY_PI_UAV_STATUS_URL
 
 # 載具狀態存儲
 vehicle_states = {
@@ -49,7 +69,7 @@ vehicle_states = {
         'type': 'uav',
         'timestamp': time.time(),
         'armed': False,
-        'mode': 'MANUAL',
+        'mode': 'RTL',
         'gps': {'fix': 3, 'satellites': 14, 'hdop': 0.7},
         'battery': {'voltage': 15.4, 'percent': 78, 'remainingMin': 12, 'charging': False},
         'position': {'lat': 23.024087, 'lon': 120.224649, 'altitude': 13.2},
@@ -59,7 +79,7 @@ vehicle_states = {
         'linkHealth': {'heartbeatHz': 20, 'latencyMs': 80, 'packetLossPercent': 1.2, 'linkType': 'UDP'},
         'systemHealth': {'cpu': 35, 'memory': 40, 'temperature': 55},
         'chargeStatus': {'charging': False, 'chargeVoltage': None, 'chargeCurrent': None},
-        'cameraUrl': '/static/images/uav_cam.jpg',
+        'cameraUrl': f'http://{RASPBERRY_PI_UAV_IP}:{RASPBERRY_PI_UAV_PORT}/video_feed',
         'lastChargingState': False
     },
     'UGV1': {
@@ -67,7 +87,7 @@ vehicle_states = {
         'type': 'ugv',
         'timestamp': time.time(),
         'armed': False,
-        'mode': 'MANUAL',
+        'mode': 'HOLD',
         # 模擬數據（系統狀態、電池、位置等）
         'gps': {'fix': 3, 'satellites': 12, 'hdop': 0.9},
         'battery': {'voltage': 14.8, 'percent': 85, 'remainingMin': 45, 'charging': False},
@@ -81,7 +101,7 @@ vehicle_states = {
         'linkHealth': {'heartbeatHz': 20, 'latencyMs': 75, 'packetLossPercent': 0.8, 'linkType': 'Serial'},
         'systemHealth': {'cpu': 30, 'memory': 35, 'temperature': 50},
         'chargeStatus': {'charging': False, 'chargeVoltage': None, 'chargeCurrent': None},
-        'cameraUrl': '/static/images/ugv_cam.jpg',
+        'cameraUrl': f'http://{RASPBERRY_PI_UGV_IP}:{RASPBERRY_PI_UGV_PORT}/video_feed',
         'lastChargingState': False
     }
 }
@@ -151,118 +171,202 @@ def init_mavlink():
     except Exception as e:
         logger.error(f"MAVLink 初始化錯誤: {e}")
 
-def update_mavlink_data():
-    """從 MAVLink 更新 UGV1 數據 - 僅更新姿態指示器和性能圖表所需的數據"""
-    global mavlink_telemetry
+def fetch_raspberry_pi_imu():
+    """從樹莓派獲取 IMU 數據（高頻率更新以獲得流暢的姿態顯示）"""
+    try:
+        response = requests.get(RASPBERRY_PI_IMU_URL, timeout=0.5)  # 縮短超時時間以支持高頻率
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.warning(f"樹莓派 IMU API 返回錯誤: {response.status_code}")
+            return None
+    except requests.exceptions.RequestException as e:
+        logger.debug(f"無法連接到樹莓派 IMU API: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"解析樹莓派 IMU 數據錯誤: {e}")
+        return None
+
+def update_raspberry_pi_data():
+    """從樹莓派更新 UAV1 數據 - 使用樹莓派提供的 IMU 數據（新格式）"""
+    global vehicle_states, history_data
     
     while True:
         try:
-            if mavlink_telemetry and mavlink_connection.is_connected:
-                # 獲取原始數據
-                raw_data = mavlink_telemetry.get_dashboard_data()
+            # 從樹莓派獲取 IMU 數據
+            imu_data = fetch_raspberry_pi_imu()
+            
+            if imu_data:
+                # 映射到 UAV1 狀態
+                uav_state = vehicle_states['UAV1']
+                current_time = time.time()
                 
-                if raw_data['connection_status']:
-                    # 映射到 UGV1 狀態
-                    ugv_state = vehicle_states['UGV1']
-                    current_time = time.time()
+                # 1. 姿態數據（新格式：直接是度數，0-359度）
+                # 格式: pitch, roll, yaw (已經是度數)
+                uav_state['attitude'] = {
+                    'rollDeg': float(imu_data.get('roll', 0.0)),      # 翻滾角 (0-359度)
+                    'pitchDeg': float(imu_data.get('pitch', 0.0)),    # 俯仰角 (0-359度)
+                    'yawDeg': float(imu_data.get('yaw', 0.0))        # 偏航角 (0-359度)
+                }
+                
+                # 2. 高度數據（新格式直接提供）
+                if 'altitude' in imu_data:
+                    uav_state['position']['altitude'] = float(imu_data.get('altitude', 0.0))
+                
+                # 3. 運動數據（從加速度估算或使用預設值）
+                # 新格式提供 accel: {x, y, z}
+                if 'accel' in imu_data:
+                    accel = imu_data['accel']
+                    # 可以從加速度計算速度（簡單積分），但這裡先保持當前值
+                    # 或者可以從樹莓派獲取更多數據
+                    if 'motion' not in uav_state:
+                        uav_state['motion'] = {'groundSpeed': 0.0, 'verticalSpeed': 0.0}
+                    # 可以根據加速度估算速度（可選）
+                    # accel_magnitude = math.sqrt(accel.get('x', 0)**2 + accel.get('y', 0)**2 + accel.get('z', 0)**2)
+                
+                # 4. RC 數據（樹莓派不提供，保持當前值或設為 0）
+                if 'rc' not in uav_state:
+                    uav_state['rc'] = {'throttle': 0.0, 'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0}
+                
+                uav_state['lastUpdateTime'] = current_time
+                uav_state['timestamp'] = current_time
+                
+                # 更新歷史數據（用於性能圖表）
+                history = history_data['UAV1']
+                history['attitude'].append({
+                    'timestamp': current_time,
+                    'roll': uav_state['attitude']['rollDeg'],
+                    'pitch': uav_state['attitude']['pitchDeg'],
+                    'yaw': uav_state['attitude']['yawDeg']
+                })
+                history['rc'].append({
+                    'timestamp': current_time,
+                    'throttle': uav_state['rc']['throttle'],
+                    'roll': uav_state['rc']['roll'],
+                    'pitch': uav_state['rc']['pitch'],
+                    'yaw': uav_state['rc']['yaw']
+                })
+                history['motion'].append({
+                    'timestamp': current_time,
+                    'groundSpeed': uav_state['motion']['groundSpeed'],
+                    'throttle': uav_state['rc']['throttle']
+                })
+                
+                # 高度數據（UAV）- 使用樹莓派提供的高度
+                history['altitude'].append({
+                    'timestamp': current_time,
+                    'altitude': uav_state['position']['altitude']
+                })
+                
+                # 限制歷史數據長度（根據回放緩衝設定保留數據）
+                global playback_buffer_seconds
+                current_time = time.time()
+                cutoff_time = current_time - playback_buffer_seconds
+                
+                # 移除超過緩衝時間的舊數據
+                for key in history:
+                    # 過濾掉超過緩衝時間的數據
+                    history[key] = [d for d in history[key] if d.get('timestamp', 0) >= cutoff_time]
                     
-                    # 只更新姿態指示器和性能圖表需要的數據
-                    # 1. 姿態數據（用於姿態指示器）
-                    ugv_state['attitude'] = {
-                        'rollDeg': raw_data['attitude']['roll'],
-                        'pitchDeg': raw_data['attitude']['pitch'],
-                        'yawDeg': raw_data['attitude']['yaw']
-                    }
-                    
-                    # 2. 運動數據（用於性能圖表）
-                    ugv_state['motion'] = {
-                        'groundSpeed': raw_data['velocity']['ground_speed'],
-                        'verticalSpeed': raw_data['velocity']['climb_rate']
-                    }
-                    
-                    # 3. RC 數據（用於性能圖表）
-                    rc_channels = raw_data['rc_channels']['channels']
-                    if len(rc_channels) >= 4:
-                        # 簡單歸一化：PWM 1000-2000 轉換為 -1.0 到 1.0
-                        def norm(pwm): 
-                            return max(-1.0, min(1.0, (pwm - 1500) / 500.0))
-                        def norm_thr(pwm): 
-                            return max(0.0, min(1.0, (pwm - 1000) / 1000.0))  # 0-1 for throttle
-                        
-                        # 根據 Rover 配置：CH1=Throttle, CH2=Steering
-                        # 但為了符合參考資料格式（throttle, roll, pitch, yaw），我們映射：
-                        ugv_state['rc'] = {
-                            'throttle': norm_thr(rc_channels[0]) if len(rc_channels) > 0 else 0,  # CH1: Throttle
-                            'roll': norm(rc_channels[1]) if len(rc_channels) > 1 else 0,           # CH2: Steering (作為 Roll)
-                            'pitch': norm(rc_channels[2]) if len(rc_channels) > 2 else 0,         # CH3: Mode (作為 Pitch)
-                            'yaw': norm(rc_channels[3]) if len(rc_channels) > 3 else 0            # CH4: Aux (作為 Yaw)
-                        }
-                    else:
-                        # 如果沒有 RC 數據，保持當前值或設為 0
-                        if 'rc' not in ugv_state:
-                            ugv_state['rc'] = {'throttle': 0.0, 'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0}
-                    
-                    ugv_state['lastUpdateTime'] = current_time
-                    ugv_state['timestamp'] = current_time
-                    
-                    # 更新歷史數據（用於性能圖表）
-                    history = history_data['UGV1']
-                    history['attitude'].append({
-                        'timestamp': current_time,
-                        'roll': ugv_state['attitude']['rollDeg'],
-                        'pitch': ugv_state['attitude']['pitchDeg'],
-                        'yaw': ugv_state['attitude']['yawDeg']
-                    })
-                    history['rc'].append({
-                        'timestamp': current_time,
-                        'throttle': ugv_state['rc']['throttle'],
-                        'roll': ugv_state['rc']['roll'],
-                        'pitch': ugv_state['rc']['pitch'],
-                        'yaw': ugv_state['rc']['yaw']
-                    })
-                    history['motion'].append({
-                        'timestamp': current_time,
-                        'groundSpeed': ugv_state['motion']['groundSpeed'],
-                        'throttle': ugv_state['rc']['throttle']
-                    })
-                    
-                    # 高度數據（UGV 通常為 0）
-                    history['altitude'].append({
-                        'timestamp': current_time,
-                        'altitude': ugv_state['position']['altitude']
-                    })
-                    
-                    # 限制歷史數據長度（根據回放緩衝設定保留數據）
-                    global playback_buffer_seconds
-                    current_time = time.time()
-                    cutoff_time = current_time - playback_buffer_seconds
-                    
-                    # 移除超過緩衝時間的舊數據
-                    for key in history:
-                        # 過濾掉超過緩衝時間的數據
-                        history[key] = [d for d in history[key] if d.get('timestamp', 0) >= cutoff_time]
-                        
-                        # 同時限制最大數據點數（防止內存溢出）
-                        if len(history[key]) > 5000:
-                            history[key] = history[key][-5000:]
-                    
-                    # 添加日誌（MAVLink 數據更新）
-                    import random
-                    if random.random() < 0.005:  # 0.5% 機率
-                        add_log('UGV1', 'info', f'MAVLink 數據更新: 速度 {ugv_state["motion"]["groundSpeed"]:.2f} m/s')
-                            
-            elif mavlink_connection and not mavlink_connection.is_connected:
-                # 嘗試重連
-                if time.time() % 5 < 0.1: # 每5秒嘗試一次
-                    try:
-                        mavlink_connection.connect()
-                    except:
-                        pass
+                    # 同時限制最大數據點數（防止內存溢出）
+                    if len(history[key]) > 5000:
+                        history[key] = history[key][-5000:]
+                
+                # 添加日誌（樹莓派數據更新）
+                if random.random() < 0.01:  # 1% 機率
+                    add_log('UAV1', 'info', f'樹莓派 IMU 數據更新: Roll {uav_state["attitude"]["rollDeg"]:.1f}°, Pitch {uav_state["attitude"]["pitchDeg"]:.1f}°, Alt {uav_state["position"]["altitude"]:.1f}m')
+            else:
+                # 無法獲取數據，標記為數據過期
+                uav_state = vehicle_states['UAV1']
+                uav_state['dataStale'] = True
                         
         except Exception as e:
-            logger.error(f"數據更新錯誤: {e}")
+            logger.error(f"樹莓派數據更新錯誤: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
         
-        time.sleep(0.05) # 20Hz 更新
+        time.sleep(0.05) # 20Hz 更新（匹配樹莓派提高的 IMU 更新率，讓姿態儀更順暢）
+
+def update_ugv_mock_data():
+    """更新 UGV1 模擬數據（IMU 等）"""
+    import random
+    
+    while True:
+        try:
+            current_time = time.time()
+            state = vehicle_states['UGV1']
+            
+            # 更新姿態數據（模擬）
+            state['attitude']['rollDeg'] += random.uniform(-0.2, 0.2)
+            state['attitude']['pitchDeg'] += random.uniform(-0.2, 0.2)
+            state['attitude']['yawDeg'] += random.uniform(-1.0, 1.0)
+            
+            # 限制姿態角度範圍
+            state['attitude']['rollDeg'] = max(-45, min(45, state['attitude']['rollDeg']))
+            state['attitude']['pitchDeg'] = max(-45, min(45, state['attitude']['pitchDeg']))
+            state['attitude']['yawDeg'] = state['attitude']['yawDeg'] % 360
+            
+            # 更新運動數據（模擬）
+            state['motion']['groundSpeed'] = random.uniform(0.0, 2.0)
+            state['motion']['verticalSpeed'] = 0.0  # UGV 通常沒有垂直速度
+            
+            # 更新 RC 數據（模擬）
+            state['rc']['throttle'] = random.uniform(0.0, 0.5)
+            state['rc']['roll'] = random.uniform(-0.3, 0.3)
+            state['rc']['pitch'] = random.uniform(-0.1, 0.1)
+            state['rc']['yaw'] = random.uniform(-0.2, 0.2)
+            
+            state['lastUpdateTime'] = current_time
+            state['timestamp'] = current_time
+            
+            # 更新歷史數據（用於性能圖表）
+            history = history_data['UGV1']
+            history['attitude'].append({
+                'timestamp': current_time,
+                'roll': state['attitude']['rollDeg'],
+                'pitch': state['attitude']['pitchDeg'],
+                'yaw': state['attitude']['yawDeg']
+            })
+            history['rc'].append({
+                'timestamp': current_time,
+                'throttle': state['rc']['throttle'],
+                'roll': state['rc']['roll'],
+                'pitch': state['rc']['pitch'],
+                'yaw': state['rc']['yaw']
+            })
+            history['motion'].append({
+                'timestamp': current_time,
+                'groundSpeed': state['motion']['groundSpeed'],
+                'throttle': state['rc']['throttle']
+            })
+            
+            # 高度數據（UGV 通常為 0）
+            history['altitude'].append({
+                'timestamp': current_time,
+                'altitude': state['position']['altitude']
+            })
+            
+            # 限制歷史數據長度（根據回放緩衝設定保留數據）
+            global playback_buffer_seconds
+            current_time = time.time()
+            cutoff_time = current_time - playback_buffer_seconds
+            
+            # 移除超過緩衝時間的舊數據
+            for key in history:
+                # 過濾掉超過緩衝時間的數據
+                history[key] = [d for d in history[key] if d.get('timestamp', 0) >= cutoff_time]
+                
+                # 同時限制最大數據點數（防止內存溢出）
+                if len(history[key]) > 5000:
+                    history[key] = history[key][-5000:]
+            
+            # 偶爾添加日誌（模擬）
+            if random.random() < 0.01:  # 1% 機率
+                add_log('UGV1', 'info', f'模擬數據更新: 速度 {state["motion"]["groundSpeed"]:.2f} m/s')
+            
+            time.sleep(0.1)  # 10Hz 更新
+        except:
+            time.sleep(1)
 
 @app.route('/')
 def index():
@@ -273,6 +377,11 @@ def index():
 def map_page():
     """地圖與任務頁面"""
     return render_template('map.html')
+
+@app.route('/map/3d-test')
+def map_3d_test_page():
+    """3D 地圖測試頁面"""
+    return render_template('map_3d_test.html')
 
 @app.route('/overview')
 def overview():
@@ -465,6 +574,45 @@ def update_system_settings():
         'playbackBuffer': playback_buffer_seconds
     })
 
+@app.route('/api/raspberry-pi/status')
+def get_raspberry_pi_status():
+    """獲取樹莓派連接狀態"""
+    try:
+        response = requests.get(RASPBERRY_PI_STATUS_URL, timeout=2.0)
+        if response.status_code == 200:
+            return jsonify({
+                'success': True,
+                'connected': True,
+                'status': response.json() if response.headers.get('content-type', '').startswith('application/json') else {'message': 'Connected'}
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'connected': False,
+                'error': f'HTTP {response.status_code}'
+            })
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            'success': False,
+            'connected': False,
+            'error': str(e)
+        }), 503
+
+@app.route('/api/raspberry-pi/imu')
+def get_raspberry_pi_imu():
+    """獲取樹莓派 IMU 數據（測試端點）"""
+    imu_data = fetch_raspberry_pi_imu()
+    if imu_data:
+        return jsonify({
+            'success': True,
+            'data': imu_data
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': '無法從樹莓派獲取 IMU 數據'
+        }), 503
+
 @app.route('/api/companion/status')
 def get_companion_status():
     """獲取 Companion 系統狀態"""
@@ -528,41 +676,52 @@ def get_companion_status():
 
 @app.route('/api/control/<vehicle_id>/arm', methods=['POST'])
 def arm_vehicle(vehicle_id):
-    """武裝載具"""
+    """武裝載具（注意：現在飛控連接到樹莓派，控制命令需要通過樹莓派轉發）"""
     data = request.get_json() or {}
     arm = data.get('arm', True)
     
-    if vehicle_id == 'UGV1' and rover_controller:
-        if arm:
-            result = rover_controller.arm()
-        else:
-            result = rover_controller.disarm()
-            
-        if result:
-             messages.append({
-                'timestamp': time.time(),
-                'vehicle': vehicle_id,
-                'level': 'info',
-                'message': f'載具已{"武裝" if arm else "解除武裝"}'
-            })
-        return jsonify({'success': result})
+    if vehicle_id == 'UGV1':
+        # 現在飛控連接到樹莓派，控制命令需要通過樹莓派 API 轉發
+        # 這裡暫時返回成功，實際實現需要樹莓派提供控制 API
+        # TODO: 實現通過樹莓派 API 轉發控制命令
+        messages.append({
+            'timestamp': time.time(),
+            'vehicle': vehicle_id,
+            'level': 'warning',
+            'message': f'控制命令需要通過樹莓派轉發（功能待實現）'
+        })
+        return jsonify({
+            'success': True,
+            'message': '控制命令已發送（需通過樹莓派轉發）'
+        })
         
     elif vehicle_id == 'UAV1':
         # Mock UAV arming
         vehicle_states[vehicle_id]['armed'] = arm
         return jsonify({'success': True})
         
-    return jsonify({'success': False, 'error': 'Unknown vehicle or controller not ready'})
+    return jsonify({'success': False, 'error': 'Unknown vehicle'})
 
 @app.route('/api/control/<vehicle_id>/mode', methods=['POST'])
 def change_mode(vehicle_id):
-    """切換載具模式"""
+    """切換載具模式（注意：現在飛控連接到樹莓派，控制命令需要通過樹莓派轉發）"""
     data = request.get_json() or {}
     mode = data.get('mode', 'MANUAL')
     
-    if vehicle_id == 'UGV1' and rover_controller:
-        result = rover_controller.set_mode(mode)
-        return jsonify({'success': result})
+    if vehicle_id == 'UGV1':
+        # 現在飛控連接到樹莓派，控制命令需要通過樹莓派 API 轉發
+        # 這裡暫時返回成功，實際實現需要樹莓派提供控制 API
+        # TODO: 實現通過樹莓派 API 轉發控制命令
+        messages.append({
+            'timestamp': time.time(),
+            'vehicle': vehicle_id,
+            'level': 'warning',
+            'message': f'模式切換命令需要通過樹莓派轉發（功能待實現）'
+        })
+        return jsonify({
+            'success': True,
+            'message': '模式切換命令已發送（需通過樹莓派轉發）'
+        })
         
     elif vehicle_id == 'UAV1':
         vehicle_states[vehicle_id]['mode'] = mode
@@ -570,9 +729,9 @@ def change_mode(vehicle_id):
         
     return jsonify({'success': False})
 
-# 模擬數據更新（用於 UAV1）
-def update_mock_data():
-    """更新 UAV1 模擬數據"""
+# 模擬數據更新（用於 UAV1 - 只更新非 IMU 數據，IMU 數據來自樹莓派）
+def update_uav_other_data():
+    """更新 UAV1 其他數據（位置、電池等），IMU 數據由樹莓派提供"""
     import random
     
     while True:
@@ -580,10 +739,8 @@ def update_mock_data():
             current_time = time.time()
             state = vehicle_states['UAV1']
             
-            # 更新姿態數據
-            state['attitude']['rollDeg'] += random.uniform(-0.5, 0.5)
-            state['attitude']['pitchDeg'] += random.uniform(-0.5, 0.5)
-            state['attitude']['rollDeg'] = max(-45, min(45, state['attitude']['rollDeg']))
+            # 注意：不再更新姿態數據，因為 IMU 數據來自樹莓派
+            # 姿態數據由 update_raspberry_pi_data() 更新
             
             # 更新位置
             state['position']['altitude'] += random.uniform(-0.1, 0.1)
@@ -621,29 +778,8 @@ def update_mock_data():
             if random.random() < 0.01:  # 1% 機率
                 add_log('UAV1', 'info', f'位置更新: {state["position"]["lat"]:.6f}, {state["position"]["lon"]:.6f}')
             
-            # 歷史數據
-            history_data['UAV1']['attitude'].append({
-                'timestamp': current_time,
-                'roll': state['attitude']['rollDeg'],
-                'pitch': state['attitude']['pitchDeg'],
-                'yaw': state['attitude']['yawDeg']
-            })
-            
-            history_data['UAV1']['rc'].append({
-                'timestamp': current_time,
-                'throttle': 0.5,
-                'roll': 0,
-                'pitch': 0,
-                'yaw': 0
-            })
-            
-            history_data['UAV1']['motion'].append({
-                'timestamp': current_time,
-                'groundSpeed': 5.0,
-                'throttle': 0.5
-            })
-            
-            # 高度數據（僅UAV）
+            # 注意：歷史數據中的 attitude、rc、motion 由 update_raspberry_pi_data() 更新
+            # 這裡只更新高度數據（如果需要）
             history_data['UAV1']['altitude'].append({
                 'timestamp': current_time,
                 'altitude': state['position']['altitude']
@@ -668,19 +804,29 @@ def update_mock_data():
             time.sleep(1)
 
 if __name__ == '__main__':
-    # 初始化 MAVLink
-    init_mavlink()
+    # 不再初始化 MAVLink（改為從樹莓派獲取數據）
+    # init_mavlink()
+    logger.info("使用樹莓派作為 UAV 數據源，UGV 使用模擬數據")
+    logger.info(f"樹莓派 IMU API: {RASPBERRY_PI_IMU_URL}")
     
-    # 啟動數據更新線程
-    mavlink_thread = threading.Thread(target=update_mavlink_data, daemon=True)
-    mavlink_thread.start()
+    # 啟動樹莓派數據更新線程（更新 UAV1 的 IMU 數據）
+    raspberry_pi_thread = threading.Thread(target=update_raspberry_pi_data, daemon=True)
+    raspberry_pi_thread.start()
     
-    # 啟動模擬數據線程（UAV）
-    mock_thread = threading.Thread(target=update_mock_data, daemon=True)
-    mock_thread.start()
+    # 啟動 UAV1 其他數據更新線程（位置、電池等，不包含 IMU）
+    uav_other_data_thread = threading.Thread(target=update_uav_other_data, daemon=True)
+    uav_other_data_thread.start()
+    
+    # 啟動 UGV1 模擬數據線程（包含 IMU 數據）
+    ugv_mock_thread = threading.Thread(target=update_ugv_mock_data, daemon=True)
+    ugv_mock_thread.start()
     
     logger.info("啟動 UAV × UGV Control Center...")
     logger.info("總覽頁面: http://localhost:5000")
+    logger.info(f"UAV1 相機串流: {RASPBERRY_PI_UAV_VIDEO_URL}")
+    logger.info(f"UGV1 相機串流: {RASPBERRY_PI_UGV_VIDEO_URL}")
+    logger.info("UAV1: 使用樹莓派 IMU 數據")
+    logger.info("UGV1: 使用模擬 IMU 數據")
     
     app.run(
         host='0.0.0.0',
