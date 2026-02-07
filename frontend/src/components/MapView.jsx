@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import Map, { Source, Layer, NavigationControl, ScaleControl, FullscreenControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Mapbox Token - 從環境變數讀取
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+// Mapbox Token - 請在此填入您的 Mapbox API Token
+const MAPBOX_TOKEN = '';
 
 export default function MapView({ vehicles, is3D = true, onToggle3D, orbitMode = false, onToggleOrbit, onClick, cursor, waypoints: propWaypoints, missions = [] }) {
     const mapRef = useRef(null);

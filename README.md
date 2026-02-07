@@ -6,6 +6,14 @@
 
 本專案是一個基於 Flask 的 Web 控制介面，用於監控和管理 UAV 與 UGV 系統。系統整合了 MAVLink 通訊協定，提供即時數據顯示、地圖導航、性能分析與系統設定等功能。
 
+## 系統截圖
+
+<div align="center">
+  <img src="demo_picture/1.png" alt="系統截圖 1" width="300"/>
+  <img src="demo_picture/2.png" alt="系統截圖 2" width="300"/>
+  <img src="demo_picture/3.png" alt="系統截圖 3" width="300"/>
+</div>
+
 ## 主要功能
 
 ### 1. 總覽頁面（Overview）
@@ -99,15 +107,9 @@ MAVLINK_BAUDRATE = 9600
 地圖功能使用 Mapbox GL JS，需要設定 API Token：
 
 1. 前往 [Mapbox](https://account.mapbox.com/) 申請免費 API Token
-2. 在 `frontend` 目錄下建立 `.env` 檔案：
-```bash
-cd frontend
-cp .env.example .env
-```
-3. 編輯 `.env` 檔案，填入您的 Mapbox Token：
-```env
-VITE_MAPBOX_TOKEN=your_mapbox_token_here
-VITE_API_URL=http://localhost:5000
+2. 編輯 `frontend/src/components/MapView.jsx`，在第 6 行填入您的 Mapbox Token：
+```javascript
+const MAPBOX_TOKEN = 'your_mapbox_token_here';
 ```
 
 **注意**：如果沒有設定 Mapbox Token，地圖功能將無法正常運作。您也可以使用開源的 MapLibre GL JS（無需 API Token），但需要修改 `MapView.jsx` 元件。
@@ -220,9 +222,7 @@ start.bat
 
 1. **MAVLink 連接**：本系統需要與 Pixhawk 飛控或相容的 MAVLink 設備連接才能使用完整功能。
 
-2. **地圖 API**：地圖功能（MapView 元件）需要 Mapbox API Token 才能正常運作。請在 `frontend/.env` 檔案中設定 `VITE_MAPBOX_TOKEN`。若未設定，地圖將無法載入。
+2. **地圖 API**：地圖功能（MapView 元件）需要 Mapbox API Token 才能正常運作。請在 `frontend/src/components/MapView.jsx` 檔案中直接填入您的 Mapbox Token。若未設定，地圖將無法載入。
 
 3. **網路連線**：地圖功能需要網路連線以載入地圖圖資。
-
-4. **環境變數**：請確保 `.env` 檔案已正確設定，且不要將包含 API Key 的 `.env` 檔案提交到版本控制系統。
 
