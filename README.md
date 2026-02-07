@@ -87,11 +87,30 @@ pip install -r requirements.txt
 ```
 
 3. **設定配置**
+
+**後端配置**
 編輯 `program/config.py`，設定 MAVLink 連接參數：
 ```python
 MAVLINK_CONNECTION_STRING = 'COM6'  # 或 'udp:127.0.0.1:14550'
 MAVLINK_BAUDRATE = 9600
 ```
+
+**前端配置（地圖功能）**
+地圖功能使用 Mapbox GL JS，需要設定 API Token：
+
+1. 前往 [Mapbox](https://account.mapbox.com/) 申請免費 API Token
+2. 在 `frontend` 目錄下建立 `.env` 檔案：
+```bash
+cd frontend
+cp .env.example .env
+```
+3. 編輯 `.env` 檔案，填入您的 Mapbox Token：
+```env
+VITE_MAPBOX_TOKEN=your_mapbox_token_here
+VITE_API_URL=http://localhost:5000
+```
+
+**注意**：如果沒有設定 Mapbox Token，地圖功能將無法正常運作。您也可以使用開源的 MapLibre GL JS（無需 API Token），但需要修改 `MapView.jsx` 元件。
 
 4. **啟動應用**
 ```bash
@@ -159,7 +178,7 @@ start.bat
 
 ## 功能特色
 
-- 即時數據監控（真實 MAVLink 數據）
+- 即時數據監控
 - 互動式地圖顯示
 - 歷史數據回放
 - 系統健康監控
@@ -197,5 +216,13 @@ start.bat
 
 ---
 
-**注意**：本系統需要與 Pixhawk 飛控或相容的 MAVLink 設備連接才能使用完整功能。
+## 注意事項
+
+1. **MAVLink 連接**：本系統需要與 Pixhawk 飛控或相容的 MAVLink 設備連接才能使用完整功能。
+
+2. **地圖 API**：地圖功能（MapView 元件）需要 Mapbox API Token 才能正常運作。請在 `frontend/.env` 檔案中設定 `VITE_MAPBOX_TOKEN`。若未設定，地圖將無法載入。
+
+3. **網路連線**：地圖功能需要網路連線以載入地圖圖資。
+
+4. **環境變數**：請確保 `.env` 檔案已正確設定，且不要將包含 API Key 的 `.env` 檔案提交到版本控制系統。
 
