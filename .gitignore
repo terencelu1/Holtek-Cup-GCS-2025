@@ -46,8 +46,26 @@ Thumbs.db
 # 環境變數
 .env
 .env.local
+.env.*.local
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 建置輸出
+dist/
+build/
+*.map
 
 # 臨時文件
 *.tmp
 *.bak
+
+# API Keys 和敏感資訊（確保不會意外提交）
+**/config.local.*
+**/*.key
+**/*.pem
 

@@ -1,0 +1,627 @@
+/* 3D Map Test Page Styles */
+:root {
+    --sidebar-width: 250px;
+    --sidebar-collapsed-width: 60px;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    padding-top: 56px;
+    padding-left: var(--sidebar-width);
+    transition: padding-left 0.3s ease;
+}
+
+/* Top Bar */
+.navbar {
+    height: 56px;
+    z-index: 1030;
+    padding: 0;
+}
+
+.navbar .container-fluid {
+    padding: 0 15px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.navbar-brand {
+    margin: 0;
+    padding: 0;
+    font-size: 1.25rem;
+    line-height: 56px;
+}
+
+.navbar-nav {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+/* Sidebar Toggle Button in Navbar */
+.sidebar-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #adb5bd;
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: var(--sidebar-width);
+    height: calc(100vh - 56px);
+    background-color: #343a40;
+    padding: 20px 0;
+    z-index: 1020;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar .nav-link {
+    color: #adb5bd;
+    padding: 12px 20px;
+    border-left: 3px solid transparent;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.sidebar .nav-link i {
+    font-size: 1.2rem;
+    min-width: 30px;
+}
+
+.sidebar .nav-link .nav-text {
+    margin-left: 10px;
+    transition: opacity 0.3s ease, width 0.3s ease;
+}
+
+.sidebar.collapsed .nav-link .nav-text {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 12px 10px;
+}
+
+.sidebar .nav-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left-color: #007bff;
+}
+
+.sidebar .nav-link.active {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left-color: #007bff;
+}
+
+/* Body padding adjustment for collapsed sidebar */
+body.sidebar-collapsed {
+    padding-left: var(--sidebar-collapsed-width);
+}
+
+.main-content {
+    padding: 0;
+    min-height: calc(100vh - 56px);
+    height: calc(100vh - 56px);
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+    position: relative;
+}
+
+.main-content .container-fluid {
+    padding: 0;
+    height: 100%;
+    max-width: 100%;
+    margin: 0;
+    position: relative;
+}
+
+.main-content .row {
+    height: 100%;
+    margin: 0;
+    position: relative;
+}
+
+.main-content .col-lg-3 {
+    position: absolute;
+    top: 0;
+    left: 80px;
+    width: 350px;
+    max-width: 350px;
+    padding: 20px;
+    height: 100%;
+    overflow-y: auto;
+    z-index: 1010;
+    pointer-events: none;
+}
+
+.main-content .col-lg-3 > * {
+    pointer-events: auto;
+}
+
+body.sidebar-collapsed .main-content .col-lg-3 {
+    left: 80px;
+    width: 400px;
+    max-width: 400px;
+}
+
+.main-content .col-lg-9 {
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* Adjust main content when sidebar is collapsed */
+body.sidebar-collapsed .main-content {
+    margin-left: 0;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.card-header {
+    background-color: rgba(248, 249, 250, 0.95);
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+/* 3D Map Styles */
+#map {
+    height: 100%;
+    width: 100%;
+    z-index: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Hide MapLibre attribution for cleaner look */
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right {
+    display: none;
+}
+
+/* Custom 3D Vehicle Markers */
+.uav-3d-marker {
+    width: 60px;
+    height: 80px;
+    position: relative;
+    cursor: pointer;
+}
+
+.uav-body {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #0066ff 0%, #00a8ff 100%);
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 5px;
+    box-shadow: 0 8px 16px rgba(0, 102, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid white;
+    transform: translateZ(0);
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+}
+
+.uav-shadow {
+    width: 40px;
+    height: 10px;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
+    position: absolute;
+    bottom: 0;
+    left: 10px;
+    filter: blur(3px);
+}
+
+.uav-icon {
+    color: white;
+    font-size: 24px;
+    transform: rotate(-45deg);
+}
+
+.uav-label {
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 102, 255, 0.95);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.uav-altitude {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 165, 0, 0.95);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.ugv-3d-marker {
+    width: 50px;
+    height: 70px;
+    position: relative;
+    cursor: pointer;
+}
+
+.ugv-body {
+    width: 45px;
+    height: 35px;
+    position: absolute;
+    top: 5px;
+    left: 2.5px;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border-radius: 6px;
+    border: 3px solid white;
+    box-shadow: 
+        0 6px 12px rgba(40, 167, 69, 0.4),
+        inset 0 -3px 8px rgba(0, 0, 0, 0.2),
+        inset 0 3px 8px rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* 立體效果 - 頂部高光 */
+.ugv-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4), transparent);
+    border-radius: 3px 3px 0 0;
+}
+
+/* 立體效果 - 側面陰影 */
+.ugv-body::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 5px;
+    right: 5px;
+    height: 5px;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 70%);
+    filter: blur(3px);
+}
+
+.ugv-icon {
+    color: white;
+    font-size: 18px;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+    z-index: 1;
+}
+
+.ugv-label {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(40, 167, 69, 0.95);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+/* Map Info Overlay */
+.map-info {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1005;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    pointer-events: none;
+}
+
+.map-info .info-item {
+    font-size: 0.85rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Map Controls (Floating Buttons) */
+.map-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1005;
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+.map-controls .btn {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.map-controls .btn:hover {
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Form Controls */
+.main-content .form-select,
+.main-content .form-select-sm {
+    padding-right: 2rem;
+    background-position: right 0.5rem center;
+    background-size: 16px 12px;
+    width: 100%;
+    min-width: 100%;
+    box-sizing: border-box;
+}
+
+.main-content .form-label {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: visible;
+}
+
+.main-content .col-lg-3 .card-body {
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.main-content .mb-3 {
+    width: 100%;
+}
+
+/* Waypoint List */
+.waypoint-list {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.waypoint-item {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #007bff;
+    transition: all 0.2s;
+}
+
+.waypoint-item:hover {
+    background: #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.waypoint-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.waypoint-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.waypoint-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.waypoint-info {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.waypoint-info span {
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.btn-xs {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+}
+
+/* Route line styles */
+.route-line {
+    stroke: #007bff;
+    stroke-width: 3;
+    stroke-dasharray: 8, 4;
+    fill: none;
+    opacity: 0.8;
+}
+
+.route-line.preview {
+    stroke: #ffc107;
+    stroke-width: 4;
+    animation: dash 20s linear infinite;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: -100;
+    }
+}
+
+/* Mission List */
+.mission-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.mission-item {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #28a745;
+    transition: all 0.2s;
+}
+
+.mission-item:hover {
+    background: #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.mission-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.mission-status {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.mission-status.running {
+    background: #d4edda;
+    color: #155724;
+}
+
+.mission-status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.mission-status.completed {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.mission-info {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.mission-actions {
+    margin-top: 4px;
+    display: flex;
+    gap: 4px;
+}
+
+.mission-actions button {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+}
+
+/* Custom Scrollbar */
+.waypoint-list::-webkit-scrollbar,
+.main-content .col-lg-3::-webkit-scrollbar {
+    width: 6px;
+}
+
+.waypoint-list::-webkit-scrollbar-track,
+.main-content .col-lg-3::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.waypoint-list::-webkit-scrollbar-thumb,
+.main-content .col-lg-3::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.waypoint-list::-webkit-scrollbar-thumb:hover,
+.main-content .col-lg-3::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Range Slider Styling */
+.form-range {
+    cursor: pointer;
+}
+
+.form-range::-webkit-slider-thumb {
+    background: #007bff;
+}
+
+.form-range::-moz-range-thumb {
+    background: #007bff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+    .main-content .col-lg-3 {
+        width: 300px;
+        max-width: 300px;
+        left: 10px;
+    }
+}
+

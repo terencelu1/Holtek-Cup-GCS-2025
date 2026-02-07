@@ -11,3 +11,5 @@ colorama
 psutil
 requests
 pytz
+flask-socketio
+eventlet

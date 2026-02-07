@@ -8,7 +8,7 @@ class PerformancePage {
         this.mode = 'realtime'; // 'realtime' or 'playback'
         this.timeRange = 60; // 預設1分鐘
         this.maxDataPoints = 1000;
-        this.updateRate = 10; // 預設10Hz
+        this.updateRate = 25; // 預設25Hz（確保姿態儀流暢顯示）
         this.updateInterval = null;
         this.smoothingEnabled = true; // 平滑濾波開關
         this.smoothingWindow = 3; // 平滑窗口大小（移動平均）

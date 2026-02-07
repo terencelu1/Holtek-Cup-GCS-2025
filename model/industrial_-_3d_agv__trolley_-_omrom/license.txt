@@ -1,0 +1,11 @@
+Model Information:
+* title:	Industrial - 3D AGV & Trolley - Omrom
+* source:	https://sketchfab.com/3d-models/industrial-3d-agv-trolley-omrom-9f5e1d24a7654c3d85394a5b5a9594e4
+* author:	Cels (https://sketchfab.com/nguyenngockhanh.nnk)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Industrial - 3D AGV & Trolley - Omrom" (https://sketchfab.com/3d-models/industrial-3d-agv-trolley-omrom-9f5e1d24a7654c3d85394a5b5a9594e4) by Cels (https://sketchfab.com/nguyenngockhanh.nnk) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -12,7 +12,7 @@ SYSTEM_VERSION = os.environ.get('SYSTEM_VERSION', '1.0.0')
 FIRMWARE_TYPE = os.environ.get('FIRMWARE_TYPE', 'ArduRover')  # 專用於ArduRover
 
 # =================== MAVLink連接配置 ===================
-MAVLINK_CONNECTION_STRING = os.environ.get('MAVLINK_CONNECTION_STRING', 'COM6')
+MAVLINK_CONNECTION_STRING = os.environ.get('MAVLINK_CONNECTION_STRING', 'COM7')
 MAVLINK_BAUDRATE = int(os.environ.get('MAVLINK_BAUDRATE', '9600'))
 MAVLINK_SOURCE_SYSTEM = int(os.environ.get('MAVLINK_SOURCE_SYSTEM', '255'))  # 標準GCS系統ID
 MAVLINK_SOURCE_COMPONENT = int(os.environ.get('MAVLINK_SOURCE_COMPONENT', '0'))  # 標準GCS組件ID

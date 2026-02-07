@@ -332,7 +332,7 @@ class SystemPage {
             return;
         }
         
-        this.chargingHistory.slice(-10).reverse().forEach(record => {
+        this.chargingHistory.slice(-15).reverse().forEach(record => {
             const row = document.createElement('tr');
             const startTime = new Date(record.startTime * 1000).toLocaleString('zh-TW');
             const endTime = record.endTime ? 
@@ -371,12 +371,12 @@ class SystemPage {
             
             const canvas = document.createElement('canvas');
             canvas.className = 'health-gauge-canvas';
-            canvas.width = 200;
-            canvas.height = 200;
+            canvas.width = 150;
+            canvas.height = 150;
             canvas.id = `healthGauge_${vehicleId}`;
             
             gaugeContainer.innerHTML = `
-                <canvas class="health-gauge-canvas" id="healthGauge_${vehicleId}" width="200" height="200"></canvas>
+                <canvas class="health-gauge-canvas" id="healthGauge_${vehicleId}" width="150" height="150"></canvas>
                 <div class="health-gauge-details">
                     <small class="text-muted">${scoreDetails}</small>
                 </div>
@@ -487,7 +487,7 @@ class SystemPage {
         const ctx = canvas.getContext('2d');
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const radius = 80;
+        const radius = 55;
         
         // 清除畫布
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -495,7 +495,7 @@ class SystemPage {
         // 繪製背景圓（完整圓）
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-        ctx.lineWidth = 20;
+        ctx.lineWidth = 15;
         ctx.strokeStyle = '#e0e0e0';
         ctx.stroke();
         
@@ -503,22 +503,22 @@ class SystemPage {
         const angle = (score / 100) * 2 * Math.PI;
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + angle, false);
-        ctx.lineWidth = 20;
+        ctx.lineWidth = 15;
         ctx.lineCap = 'round';
         ctx.strokeStyle = this.getHealthColor(score);
         ctx.stroke();
         
         // 在圓圈內繪製載具名稱
         ctx.fillStyle = '#333';
-        ctx.font = 'bold 16px Arial, "Noto Sans TC", sans-serif';
+        ctx.font = 'bold 12px Arial, "Noto Sans TC", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(vehicleId, centerX, centerY - 15);
+        ctx.fillText(vehicleId, centerX, centerY - 10);
         
         // 在圓圈內繪製分數
         ctx.fillStyle = this.getHealthColor(score);
-        ctx.font = 'bold 32px Arial, "Noto Sans TC", sans-serif';
-        ctx.fillText(score.toString(), centerX, centerY + 15);
+        ctx.font = 'bold 24px Arial, "Noto Sans TC", sans-serif';
+        ctx.fillText(score.toString(), centerX, centerY + 10);
     }
     
     getHealthColor(score) {

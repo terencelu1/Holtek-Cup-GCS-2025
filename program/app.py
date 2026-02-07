@@ -11,7 +11,7 @@ import math
 import random
 import requests
 from pathlib import Path
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 
 # 設定日誌
 logging.basicConfig(
@@ -37,6 +37,11 @@ app = Flask(
     static_folder='static'
 )
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'uav-ugv-control-center-2025')
+
+# 初始化 SocketIO
+from flask_socketio import SocketIO
+# Remove async_mode='threading' so it can auto-detect eventlet/gevent
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # 全局 MAVLink 對象（保留但不再使用，改為從樹莓派獲取數據）
 mavlink_connection = None
@@ -275,6 +280,10 @@ def update_raspberry_pi_data():
                 # 添加日誌（樹莓派數據更新）
                 if random.random() < 0.01:  # 1% 機率
                     add_log('UAV1', 'info', f'樹莓派 IMU 數據更新: Roll {uav_state["attitude"]["rollDeg"]:.1f}°, Pitch {uav_state["attitude"]["pitchDeg"]:.1f}°, Alt {uav_state["position"]["altitude"]:.1f}m')
+                
+                # 發送 WebSocket 更新 (新增)
+                socketio.emit('telemetry_data', {'vehicleId': 'UAV1', 'state': uav_state})
+                
             else:
                 # 無法獲取數據，標記為數據過期
                 uav_state = vehicle_states['UAV1']
@@ -285,7 +294,7 @@ def update_raspberry_pi_data():
             import traceback
             logger.debug(traceback.format_exc())
         
-        time.sleep(0.05) # 20Hz 更新（匹配樹莓派提高的 IMU 更新率，讓姿態儀更順暢）
+        socketio.sleep(0.05) # 使用 socketio.sleep 而不是 time.sleep
 
 def update_ugv_mock_data():
     """更新 UGV1 模擬數據（IMU 等）"""
@@ -364,39 +373,33 @@ def update_ugv_mock_data():
             if random.random() < 0.01:  # 1% 機率
                 add_log('UGV1', 'info', f'模擬數據更新: 速度 {state["motion"]["groundSpeed"]:.2f} m/s')
             
-            time.sleep(0.1)  # 10Hz 更新
+            # 發送 WebSocket 更新 (新增)
+            socketio.emit('telemetry_data', {'vehicleId': 'UGV1', 'state': state})
+            
+            socketio.sleep(0.1)  # 10Hz 更新
         except:
-            time.sleep(1)
+            socketio.sleep(1)
 
 @app.route('/')
-def index():
-    """總覽頁面"""
-    return render_template('overview.html')
-
+@app.route('/overview')
 @app.route('/map')
-def map_page():
-    """地圖與任務頁面"""
-    return render_template('map.html')
+@app.route('/performance')
+@app.route('/system')
+def main_app():
+    """React SPA 入口點"""
+    return send_from_directory('static/react_dist', 'index.html')
+
+@app.route('/static/react_dist/<path:filename>')
+def serve_react_assets(filename):
+    return send_from_directory('static/react_dist', filename)
+
+@app.route('/models/<path:filename>')
+def serve_models(filename):
+    return send_from_directory('static/react_dist/models', filename)
 
 @app.route('/map/3d-test')
 def map_3d_test_page():
-    """3D 地圖測試頁面"""
     return render_template('map_3d_test.html')
-
-@app.route('/overview')
-def overview():
-    """總覽頁面（別名）"""
-    return render_template('overview.html')
-
-@app.route('/performance')
-def performance_page():
-    """性能與紀錄頁面"""
-    return render_template('performance.html')
-
-@app.route('/system')
-def system_page():
-    """系統與電源頁面"""
-    return render_template('system.html')
 
 @app.route('/api/vehicles')
 def get_vehicles():
@@ -799,9 +802,9 @@ def update_uav_other_data():
                 if len(history_data['UAV1'][key]) > 5000:
                     history_data['UAV1'][key] = history_data['UAV1'][key][-5000:]
             
-            time.sleep(0.1)
+            socketio.sleep(0.1)
         except:
-            time.sleep(1)
+            socketio.sleep(1)
 
 if __name__ == '__main__':
     # 不再初始化 MAVLink（改為從樹莓派獲取數據）
@@ -810,16 +813,13 @@ if __name__ == '__main__':
     logger.info(f"樹莓派 IMU API: {RASPBERRY_PI_IMU_URL}")
     
     # 啟動樹莓派數據更新線程（更新 UAV1 的 IMU 數據）
-    raspberry_pi_thread = threading.Thread(target=update_raspberry_pi_data, daemon=True)
-    raspberry_pi_thread.start()
+    socketio.start_background_task(update_raspberry_pi_data)
     
     # 啟動 UAV1 其他數據更新線程（位置、電池等，不包含 IMU）
-    uav_other_data_thread = threading.Thread(target=update_uav_other_data, daemon=True)
-    uav_other_data_thread.start()
+    socketio.start_background_task(update_uav_other_data)
     
     # 啟動 UGV1 模擬數據線程（包含 IMU 數據）
-    ugv_mock_thread = threading.Thread(target=update_ugv_mock_data, daemon=True)
-    ugv_mock_thread.start()
+    socketio.start_background_task(update_ugv_mock_data)
     
     logger.info("啟動 UAV × UGV Control Center...")
     logger.info("總覽頁面: http://localhost:5000")
@@ -828,10 +828,11 @@ if __name__ == '__main__':
     logger.info("UAV1: 使用樹莓派 IMU 數據")
     logger.info("UGV1: 使用模擬 IMU 數據")
     
-    app.run(
+    # 使用 socketio.run 代替 app.run
+    socketio.run(
+        app,
         host='0.0.0.0',
-        port=5000,
+        port=5001,
         debug=True,
-        threaded=True,
         use_reloader=False  # 避免重複啟動線程
     )

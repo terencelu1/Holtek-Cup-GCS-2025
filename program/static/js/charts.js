@@ -4,8 +4,8 @@ class ChartManager {
         this.charts = {};
         this.dataBuffers = {};
         this.timeRange = 60; // 預設1分鐘
-        this.maxDataPoints = 300;
-        this.updateRate = 10; // 預設10Hz
+        this.maxDataPoints = 2000; // 增加數據點數，避免圖表被截斷（25Hz * 60秒 = 1500點，留一些餘量）
+        this.updateRate = 25; // 預設25Hz（確保姿態儀流暢顯示）
         this.updateInterval = null;
         this.smoothingEnabled = true; // 平滑濾波開關
         this.smoothingWindow = 3; // 平滑窗口大小（移動平均）
@@ -560,36 +560,45 @@ class ChartManager {
             const vehicleId = document.getElementById('chartVehicleSelect')?.value || 'UGV1';
             const buffer = this.dataBuffers[vehicleId];
             
-            if (buffer && buffer.attitude) {
-                // 過濾時間範圍內的數據
-                const indices = buffer.attitude.time
-                    .map((time, idx) => ({ time, idx }))
-                    .filter(item => item.time >= cutoffTime)
-                    .map(item => item.idx);
+            if (buffer && buffer.attitude && buffer.attitude.time.length > 0) {
+                const times = buffer.attitude.time;
+                const roll = buffer.attitude.roll;
+                const pitch = buffer.attitude.pitch;
+                const yaw = buffer.attitude.yaw;
                 
-                if (indices.length > 0) {
-                    const rollData = indices.map(idx => ({
-                        x: buffer.attitude.time[idx],
-                        y: buffer.attitude.roll[idx]
-                    }));
-                    const pitchData = indices.map(idx => ({
-                        x: buffer.attitude.time[idx],
-                        y: buffer.attitude.pitch[idx]
-                    }));
-                    const yawData = indices.map(idx => ({
-                        x: buffer.attitude.time[idx],
-                        y: buffer.attitude.yaw[idx]
-                    }));
-                    
-                    // 應用平滑濾波
-                    this.charts.attitude.data.datasets[0].data = this.smoothChartData(rollData);
-                    this.charts.attitude.data.datasets[1].data = this.smoothChartData(pitchData);
-                    this.charts.attitude.data.datasets[2].data = this.smoothChartData(yawData);
+                // 過濾時間範圍內的數據
+                const rollData = [];
+                const pitchData = [];
+                const yawData = [];
+                
+                for (let i = 0; i < times.length; i++) {
+                    if (times[i] >= cutoffTime) {
+                        rollData.push({ x: times[i], y: roll[i] });
+                        pitchData.push({ x: times[i], y: pitch[i] });
+                        yawData.push({ x: times[i], y: yaw[i] });
+                    }
                 }
+                
+                // 更新圖表數據
+                this.charts.attitude.data.datasets[0].data = this.smoothingEnabled 
+                    ? this.smoothChartData(rollData) 
+                    : rollData;
+                this.charts.attitude.data.datasets[1].data = this.smoothingEnabled 
+                    ? this.smoothChartData(pitchData) 
+                    : pitchData;
+                this.charts.attitude.data.datasets[2].data = this.smoothingEnabled 
+                    ? this.smoothChartData(yawData) 
+                    : yawData;
+            } else {
+                // 沒有緩衝區數據，設置空數組
+                this.charts.attitude.data.datasets[0].data = [];
+                this.charts.attitude.data.datasets[1].data = [];
+                this.charts.attitude.data.datasets[2].data = [];
             }
             
             this.charts.attitude.options.scales.x.min = cutoffTime;
             this.charts.attitude.options.scales.x.max = now;
+            // 使用 'none' 模式避免動畫，提高性能
             this.charts.attitude.update('none');
         }
         
@@ -598,35 +607,47 @@ class ChartManager {
             const vehicleId = document.getElementById('chartVehicleSelect')?.value || 'UGV1';
             const buffer = this.dataBuffers[vehicleId];
             
-            if (buffer && buffer.rc) {
-                const indices = buffer.rc.time
-                    .map((time, idx) => ({ time, idx }))
-                    .filter(item => item.time >= cutoffTime)
-                    .map(item => item.idx);
+            if (buffer && buffer.rc && buffer.rc.time.length > 0) {
+                const times = buffer.rc.time;
+                const throttle = buffer.rc.throttle;
+                const roll = buffer.rc.roll;
+                const pitch = buffer.rc.pitch;
+                const yaw = buffer.rc.yaw;
                 
-                if (indices.length > 0) {
-                    const throttleData = indices.map(idx => ({
-                        x: buffer.rc.time[idx],
-                        y: buffer.rc.throttle[idx]
-                    }));
-                    const rollData = indices.map(idx => ({
-                        x: buffer.rc.time[idx],
-                        y: buffer.rc.roll[idx]
-                    }));
-                    const pitchData = indices.map(idx => ({
-                        x: buffer.rc.time[idx],
-                        y: buffer.rc.pitch[idx]
-                    }));
-                    const yawData = indices.map(idx => ({
-                        x: buffer.rc.time[idx],
-                        y: buffer.rc.yaw[idx]
-                    }));
-                    
-                    this.charts.rc.data.datasets[0].data = this.smoothChartData(throttleData);
-                    this.charts.rc.data.datasets[1].data = this.smoothChartData(rollData);
-                    this.charts.rc.data.datasets[2].data = this.smoothChartData(pitchData);
-                    this.charts.rc.data.datasets[3].data = this.smoothChartData(yawData);
+                // 過濾時間範圍內的數據
+                const throttleData = [];
+                const rollData = [];
+                const pitchData = [];
+                const yawData = [];
+                
+                for (let i = 0; i < times.length; i++) {
+                    if (times[i] >= cutoffTime) {
+                        throttleData.push({ x: times[i], y: throttle[i] });
+                        rollData.push({ x: times[i], y: roll[i] });
+                        pitchData.push({ x: times[i], y: pitch[i] });
+                        yawData.push({ x: times[i], y: yaw[i] });
+                    }
                 }
+                
+                // 更新圖表數據
+                this.charts.rc.data.datasets[0].data = this.smoothingEnabled 
+                    ? this.smoothChartData(throttleData) 
+                    : throttleData;
+                this.charts.rc.data.datasets[1].data = this.smoothingEnabled 
+                    ? this.smoothChartData(rollData) 
+                    : rollData;
+                this.charts.rc.data.datasets[2].data = this.smoothingEnabled 
+                    ? this.smoothChartData(pitchData) 
+                    : pitchData;
+                this.charts.rc.data.datasets[3].data = this.smoothingEnabled 
+                    ? this.smoothChartData(yawData) 
+                    : yawData;
+            } else {
+                // 沒有緩衝區數據，設置空數組
+                this.charts.rc.data.datasets[0].data = [];
+                this.charts.rc.data.datasets[1].data = [];
+                this.charts.rc.data.datasets[2].data = [];
+                this.charts.rc.data.datasets[3].data = [];
             }
             
             this.charts.rc.options.scales.x.min = cutoffTime;
@@ -639,25 +660,33 @@ class ChartManager {
             const vehicleId = document.getElementById('chartVehicleSelect')?.value || 'UGV1';
             const buffer = this.dataBuffers[vehicleId];
             
-            if (buffer && buffer.motion) {
-                const indices = buffer.motion.time
-                    .map((time, idx) => ({ time, idx }))
-                    .filter(item => item.time >= cutoffTime)
-                    .map(item => item.idx);
+            if (buffer && buffer.motion && buffer.motion.time.length > 0) {
+                const times = buffer.motion.time;
+                const groundSpeed = buffer.motion.groundSpeed;
+                const throttle = buffer.motion.throttle;
                 
-                if (indices.length > 0) {
-                    const speedData = indices.map(idx => ({
-                        x: buffer.motion.time[idx],
-                        y: buffer.motion.groundSpeed[idx]
-                    }));
-                    const throttleData = indices.map(idx => ({
-                        x: buffer.motion.time[idx],
-                        y: buffer.motion.throttle[idx]
-                    }));
-                    
-                    this.charts.speed.data.datasets[0].data = this.smoothChartData(speedData);
-                    this.charts.speed.data.datasets[1].data = this.smoothChartData(throttleData);
+                // 過濾時間範圍內的數據
+                const speedData = [];
+                const throttleData = [];
+                
+                for (let i = 0; i < times.length; i++) {
+                    if (times[i] >= cutoffTime) {
+                        speedData.push({ x: times[i], y: groundSpeed[i] });
+                        throttleData.push({ x: times[i], y: throttle[i] });
+                    }
                 }
+                
+                // 更新圖表數據
+                this.charts.speed.data.datasets[0].data = this.smoothingEnabled 
+                    ? this.smoothChartData(speedData) 
+                    : speedData;
+                this.charts.speed.data.datasets[1].data = this.smoothingEnabled 
+                    ? this.smoothChartData(throttleData) 
+                    : throttleData;
+            } else {
+                // 沒有緩衝區數據，設置空數組
+                this.charts.speed.data.datasets[0].data = [];
+                this.charts.speed.data.datasets[1].data = [];
             }
             
             this.charts.speed.options.scales.x.min = cutoffTime;
